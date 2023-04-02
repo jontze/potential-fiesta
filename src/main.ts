@@ -1,5 +1,5 @@
 import { Notice, Plugin } from "obsidian";
-import { AddPersonModal } from "./modals";
+import { AddPersonModal, SelectPersonModal } from "./modals";
 import {
 	DEFAULT_SETTINGS,
 	JontzePluginSettings,
@@ -26,6 +26,17 @@ export default class JontzePlugin extends Plugin {
 			name: "Add a new person",
 			callback: () => {
 				new AddPersonModal(
+					this.app,
+					this.settings.personsDirectory
+				).open();
+			},
+		});
+
+		this.addCommand({
+			id: "jontze-select-person",
+			name: "Select a person",
+			callback: () => {
+				new SelectPersonModal(
 					this.app,
 					this.settings.personsDirectory
 				).open();
