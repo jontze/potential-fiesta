@@ -1,23 +1,32 @@
 import { debug, error } from "console";
 import { RequestUrlResponse, requestUrl, type RequestUrlParam } from "obsidian";
-
-export interface GithubRequestParams {
-	method: "GET" | "POST";
-	path: string;
-	jsonBody?: any;
-}
+import {
+	Observable,
+	from,
+	interval,
+	map,
+	of,
+	shareReplay,
+	startWith,
+	switchMap,
+	tap,
+} from "rxjs";
+import { Notifications } from "./models";
 
 export class GithubApi {
 	constructor(private readonly token: string) {}
 
-	private async request(
-		params: GithubRequestParams
-	): Promise<RequestUrlResponse> {
+	private request(params: {
+		method: "GET" | "POST";
+		path: string;
+		jsonBody?: any;
+	}): Observable<RequestUrlResponse> {
 		const requestParams: RequestUrlParam = {
 			url: "https://api.github.com",
 			method: params.method,
 			headers: {
 				Authorization: `Bearer ${this.token}`,
+				"X-GitHub-Api-Version": "2022-11-28",
 			},
 		};
 
@@ -33,22 +42,35 @@ export class GithubApi {
 
 		debug(`[Github Api]: ${requestParams.method} ${requestParams.url}`);
 
-		let res = await requestUrl(requestParams);
-
-		if (res.status >= 400) {
-			error(
-				`[Github Api]: ${requestParams.method} ${requestParams.url} returned error '[${res.status}]': ${res.text}`
-			);
-		}
-
-		return res;
+		return from(requestUrl(requestParams)).pipe(
+			tap((res) => {
+				if (res.status >= 400) {
+					error(
+						`[Github Api]: ${requestParams.method} ${requestParams.url} returned error '[${res.status}]': ${res.text}`
+					);
+				}
+			})
+		);
 	}
 
-	async fetchNotifications(): Promise<any[]> {
-		const res = await this.request({
+	fetchNotifications(isMock = false): Observable<Notifications> {
+		if (isMock) {
+			return of([{ reason: "Hello" }] as Notifications);
+		}
+		return this.request({
 			method: "GET",
 			path: "/notifications",
-		});
-		return res.json as [];
+		}).pipe(map((res) => res.json));
+	}
+
+	watchNotifications(
+		refreshRate: number,
+		isMock = false
+	): Observable<Notifications> {
+		return interval(refreshRate).pipe(
+			startWith(0),
+			switchMap(() => this.fetchNotifications(isMock)),
+			shareReplay(1)
+		);
 	}
 }
