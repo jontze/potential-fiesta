@@ -5,11 +5,16 @@ import { getTokenPath } from "./token";
 export interface JontzePluginSettings {
 	personsDirectory: string;
 	secretDirectory: string;
+	/**
+	 * in ms
+	 */
+	githubNotificationRefreshRate: number;
 }
 
 export const DEFAULT_SETTINGS: JontzePluginSettings = {
 	personsDirectory: "persons",
 	secretDirectory: "jontze/secrets",
+	githubNotificationRefreshRate: 60000,
 };
 
 export class JontzeSettingTab extends PluginSettingTab {
@@ -28,6 +33,7 @@ export class JontzeSettingTab extends PluginSettingTab {
 		this.personDirectory();
 		this.secretsDirectory();
 		this.githubApiToken();
+		this.notificationRefreshRate();
 	}
 
 	private heading(): void {
@@ -76,9 +82,6 @@ export class JontzeSettingTab extends PluginSettingTab {
 			)
 			.addTextArea(async (text) => {
 				try {
-					console.log(
-						getTokenPath(this.plugin.settings.secretDirectory)
-					);
 					text.setValue(
 						await this.app.vault.adapter.read(
 							getTokenPath(this.plugin.settings.secretDirectory)
@@ -94,6 +97,26 @@ export class JontzeSettingTab extends PluginSettingTab {
 						value
 					);
 				});
+			});
+	}
+
+	private notificationRefreshRate(): void {
+		new Setting(this.containerEl)
+			.setName("Notification Refresh Rate")
+			.setDesc(
+				"Amount in milliseconds. You'll need to restart obisidan after setting this."
+			)
+			.addSlider((slider) => {
+				slider
+					.setLimits(60000, 3.6e6, 60000)
+					.setValue(
+						this.plugin.settings.githubNotificationRefreshRate
+					)
+					.onChange(async (updated_value) => {
+						this.plugin.settings.githubNotificationRefreshRate =
+							updated_value;
+						await this.plugin.saveSettings();
+					});
 			});
 	}
 }
