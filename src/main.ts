@@ -7,6 +7,7 @@ import {
 } from "./Settings";
 import { GithubApi } from "./api";
 import { Notifications } from "./api/github/models";
+import { applyQuery } from "./filter";
 import { AddPersonModal, SelectPersonModal } from "./modals";
 import { parseQuery } from "./parser";
 import { getTokenPath } from "./token";
@@ -54,13 +55,16 @@ export default class JontzePlugin extends Plugin {
 			"github-notifications",
 			(src, el, ctx) => {
 				const query = parseQuery(src.trim());
-				console.log(query);
 				this.sub.add(
 					// TODO: Use query to filter array
-					this.notifications$?.subscribe((notifications) => {
-						console.log(notifications);
-						ctx.addChild(new NotificationList(el, notifications));
-					})
+					this.notifications$
+						?.pipe(applyQuery(query))
+						.subscribe((notifications) => {
+							console.log(notifications);
+							ctx.addChild(
+								new NotificationList(el, notifications)
+							);
+						})
 				);
 			}
 		);
