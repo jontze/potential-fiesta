@@ -8,31 +8,40 @@ import {
 import { GithubApi } from "./api";
 import { Notifications } from "./api/github/models";
 import { AddPersonModal, SelectPersonModal } from "./modals";
+import { parseQuery } from "./parser";
 import { getTokenPath } from "./token";
+import { NotificationList } from "./view";
 
 export default class JontzePlugin extends Plugin {
 	private githubApi!: GithubApi;
-	private notifications$!: Observable<Notifications>;
+	private notifications$?: Observable<Notifications>;
 	private readonly sub = new Subscription();
 
 	settings!: JontzePluginSettings;
 
 	async onload() {
 		await this.loadSettings();
-		this.githubApi = new GithubApi(
-			getTokenPath(this.settings.secretDirectory)
-		);
-		this.notifications$ = this.githubApi.watchNotifications(
-			this.settings.githubNotificationRefreshRate,
-			true
-		);
+		const tokenPath = getTokenPath(this.settings.secretDirectory);
+		try {
+			const token = await this.app.vault.adapter.read(tokenPath);
+			this.githubApi = new GithubApi(token);
+			this.notifications$ = this.githubApi.watchNotifications(
+				this.settings.githubNotificationRefreshRate
+			);
+		} catch (err) {
+			console.error(err);
+			const _ = new Notice(
+				"No github token provided! Please add a token and restart obsidian.",
+				6000
+			);
+		}
 
 		const ribbonIconEl = this.addRibbonIcon(
 			"bot",
 			"Jontze Plugin",
 			(evt: MouseEvent) => {
 				// TODO: Do something meaningful if the user clicks the ribbon icon
-				new Notice("This is a notice!");
+				const _ = new Notice("This is a notice!");
 			}
 		);
 
@@ -44,11 +53,13 @@ export default class JontzePlugin extends Plugin {
 		this.registerMarkdownCodeBlockProcessor(
 			"github-notifications",
 			(src, el, ctx) => {
+				const query = parseQuery(src.trim());
+				console.log(query);
 				this.sub.add(
-					this.notifications$.subscribe((notifications) => {
-						notifications.forEach((notify) => {
-							el.appendChild(createSpan({ text: notify.reason }));
-						});
+					// TODO: Use query to filter array
+					this.notifications$?.subscribe((notifications) => {
+						console.log(notifications);
+						ctx.addChild(new NotificationList(el, notifications));
 					})
 				);
 			}
