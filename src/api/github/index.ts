@@ -18,18 +18,17 @@ export class GithubApi {
 
 	private request(params: {
 		method: "GET" | "POST";
-		path: string;
+		uri: string;
 		jsonBody?: any;
 	}): Observable<RequestUrlResponse> {
 		const requestParams: RequestUrlParam = {
-			url: "https://api.github.com",
+			url: "https://api.github.com" + params.uri,
 			method: params.method,
 			headers: {
 				Authorization: `Bearer ${this.token}`,
 				"X-GitHub-Api-Version": "2022-11-28",
 			},
 		};
-
 		if (params.jsonBody) {
 			requestParams.body = JSON.stringify(params.jsonBody);
 			requestParams.headers = {
@@ -39,9 +38,7 @@ export class GithubApi {
 				},
 			};
 		}
-
 		debug(`[Github Api]: ${requestParams.method} ${requestParams.url}`);
-
 		return from(requestUrl(requestParams)).pipe(
 			tap((res) => {
 				if (res.status >= 400) {
@@ -59,7 +56,7 @@ export class GithubApi {
 		}
 		return this.request({
 			method: "GET",
-			path: "/notifications",
+			uri: "/notifications?all=true",
 		}).pipe(map((res) => res.json));
 	}
 
