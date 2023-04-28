@@ -56,7 +56,6 @@ export default class JontzePlugin extends Plugin {
 			(src, el, ctx) => {
 				const query = parseQuery(src.trim());
 				this.sub.add(
-					// TODO: Use query to filter array
 					this.notifications$
 						?.pipe(applyQuery(query))
 						.subscribe((notifications) => {

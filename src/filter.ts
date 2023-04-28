@@ -6,7 +6,7 @@ export const applyQuery = (
 	query: QueryObject
 ): MonoTypeOperatorFunction<Notifications> => {
 	return map((notifications) => {
-		if (query.filter == null) {
+		if (query?.filter == null) {
 			return notifications;
 		}
 		let filteredNotifications = notifications;
